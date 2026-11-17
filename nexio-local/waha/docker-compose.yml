@@ -1,0 +1,29 @@
+# WAHA (WhatsApp por QR Code). As chaves vem do .env.local, carregadas pelos scripts (_comum.ps1).
+name: nexio-waha
+
+services:
+  waha:
+    image: devlikeapro/waha:latest-2026.7.2
+    container_name: nexio-waha
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3030:3000"
+    environment:
+      WAHA_API_KEY: "sha512:${WAHA_API_KEY_SHA512}"
+      WHATSAPP_HOOK_URL: http://host.docker.internal:3000/api/v1/webhooks/waha
+      WHATSAPP_HOOK_EVENTS: "message.any,message.ack,message.edited,message.revoked,message.reaction,session.status,state.change"
+      WHATSAPP_HOOK_HMAC_KEY: "${WAHA_HMAC_SECRET}"
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WAHA_DASHBOARD_ENABLED: "true"
+      WHATSAPP_RESTART_ALL_SESSIONS: "True"
+      TZ: America/Sao_Paulo
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "supabase.localhost:host-gateway"
+    volumes:
+      - waha-data:/app/.sessions
+      - waha-media:/app/.media
+
+volumes:
+  waha-data:
+  waha-media:
