@@ -1,0 +1,297 @@
+# Nexio CRM: implantação na VPS Hostinger pelo Gerenciador Docker (Compose a partir de URL).
+#
+# Pré-requisito: o projeto "nexio" (Traefik + n8n + WAHA) já rodando na mesma VPS.
+# O CRM publica em https://crm.nexiodigital.com.br pelo Traefik desse projeto (rede nexio_default).
+#
+# NENHUMA SENHA FICA NESTE ARQUIVO.
+#  - Segredos internos: gerados no 1º start pelo serviço "segredos" e guardados no volume crm_segredos.
+#  - Credenciais do Supabase e do admin: preenchidas no campo "Ambiente" do Gerenciador Docker:
+#      NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
+#      SUPABASE_DB_URL (Session pooler, porta 5432), OWNER_EMAIL, OWNER_PASSWORD
+#    Opcionais: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY
+#
+# Versão do CRM: imagens e schema do DeskcommCRM v1.124.0 (mesmo número nos dois).
+
+x-logging: &logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-crm-env: &crm-env
+  NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+  SUPABASE_DB_URL: ${SUPABASE_DB_URL}
+  SUPABASE_DB_ADMIN_URL: ""
+  DOMAIN: crm.nexiodigital.com.br
+  NEXT_PUBLIC_APP_URL: https://crm.nexiodigital.com.br
+  NEXT_PUBLIC_ADMIN_URL: https://crm.nexiodigital.com.br
+  WAHA_API_BASE_URL: http://waha:3000
+  WAHA_WEBHOOK_BASE_URL: http://app:3000
+  WHATSAPP_RESTART_ALL_SESSIONS: "True"
+  UPSTASH_REDIS_REST_URL: http://srh:80
+  NODE_ENV: production
+  NUVEMSHOP_ENABLED: "false"
+  INTERNAL_AGENT_RUN_STUB: "false"
+  AGENT_DISPATCH_CONSUMER: engine
+  SHUTDOWN_GRACE_MS: "30000"
+  EVENT_LOG_WORKER_DRAINS: "true"
+  APP_NAME: Nexio CRM
+  APP_LOGO_URL: https://nexiodigital.com.br/wp-content/themes/nexio-digital-elementor/assets/logo-mark.png
+  APP_ACCENT_HEX: "#8020e7"
+  SUPPORT_EMAIL: contato@nexiodigital.com.br
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+
+services:
+  # 1) Gera os segredos internos uma única vez e guarda no volume.
+  segredos:
+    image: alpine:3.20
+    restart: "no"
+    volumes:
+      - crm_segredos:/segredos
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        F=/segredos/env
+        hex() { head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+        b64() { head -c 32 /dev/urandom | base64 | tr -d '\n'; }
+        if [ ! -s $$F ]; then
+          WK=$$(hex); SRH=$$(hex)
+          {
+            echo "INTERNAL_SECRET=$$(hex)"
+            echo "INTERNAL_CRON_SECRET=$$(hex)"
+            echo "NUVEMSHOP_OAUTH_ENCRYPTION_KEY=$$(hex)"
+            echo "CPF_ENCRYPTION_KEY=$$(b64)"
+            echo "AI_CRED_AES_KEY=$$(b64)"
+            echo "WAHA_BYO_ENCRYPTION_KEY=$$(b64)"
+            echo "IMPERSONATE_COOKIE_SECRET=$$(hex)"
+            echo "LGPD_SIGNING_KEY=$$(hex)"
+            echo "WAHA_HMAC_SECRET=$$(hex)"
+            echo "WAHA_API_KEY=$$WK"
+            echo "WAHA_API_KEY_SHA512=$$(printf '%s' "$$WK" | sha512sum | cut -d' ' -f1)"
+            echo "SRH_TOKEN=$$SRH"
+            echo "UPSTASH_REDIS_REST_TOKEN=$$SRH"
+          } > $$F.tmp
+          mv $$F.tmp $$F
+          echo "segredos gerados"
+        else
+          echo "segredos ja existem"
+        fi
+        chmod 644 $$F
+    logging: *logs
+    networks: [interna]
+
+  # 2) Cria o schema no Supabase (idempotente) e o primeiro admin.
+  banco:
+    image: postgres:17-alpine
+    restart: "no"
+    depends_on:
+      segredos:
+        condition: service_completed_successfully
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL}
+      OWNER_EMAIL: ${OWNER_EMAIL}
+      OWNER_PASSWORD: ${OWNER_PASSWORD:-}
+      BASELINE_URL: https://raw.githubusercontent.com/melgarafael/DeskcommCRM/v1.124.0/supabase/baseline.sql
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        DB="$$SUPABASE_DB_URL"
+        echo "baixando schema..."
+        wget -qO /tmp/baseline.sql "$$BASELINE_URL"
+        psql "$$DB" -v ON_ERROR_STOP=1 -q -c "create extension if not exists vector with schema public; create extension if not exists citext with schema public; create extension if not exists pg_trgm with schema public;"
+        TEM=$$(psql "$$DB" -tAc "select 1 from information_schema.tables where table_schema='public' and table_name='organizations' limit 1" | tr -d '[:space:]')
+        if [ "$$TEM" = "1" ]; then
+          echo "schema ja existe: reaplicando em modo atualizacao"
+          psql "$$DB" -q -f /tmp/baseline.sql > /tmp/apply.log 2>&1 || true
+        else
+          echo "aplicando schema (leva alguns minutos)..."
+          if ! psql "$$DB" -v ON_ERROR_STOP=1 -q -f /tmp/baseline.sql > /tmp/apply.log 2>&1; then
+            echo "ERRO ao aplicar o schema:"; tail -30 /tmp/apply.log; exit 1
+          fi
+        fi
+        echo "schema ok"
+        if [ -n "$$OWNER_PASSWORD" ]; then
+          wget -q -O /dev/null \
+            --header "apikey: $$SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Authorization: Bearer $$SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Content-Type: application/json" \
+            --post-data "{\"email\":\"$$OWNER_EMAIL\",\"password\":\"$$OWNER_PASSWORD\",\"email_confirm\":true,\"user_metadata\":{\"locale\":\"pt-BR\"}}" \
+            "$$NEXT_PUBLIC_SUPABASE_URL/auth/v1/admin/users" || true
+        fi
+        psql "$$DB" -v ON_ERROR_STOP=1 -q -v email="$$OWNER_EMAIL" <<'SQL'
+        select set_config('nexio.owner_email', :'email', false);
+        do $$$$
+        declare v_org uuid; v_uid uuid; v_email text := current_setting('nexio.owner_email');
+        begin
+          select id into v_uid from auth.users where email = v_email;
+          if v_uid is null then
+            raise exception 'usuario % nao encontrado no auth.users (confira OWNER_EMAIL/OWNER_PASSWORD e a service_role key)', v_email;
+          end if;
+          select id into v_org from public.organizations where slug = 'minha-empresa';
+          if v_org is null then
+            insert into public.organizations (slug, display_name, legal_name, locale, created_by)
+            values ('minha-empresa', 'Nexio Digital', 'Nexio Digital', 'pt-BR', v_uid)
+            returning id into v_org;
+          end if;
+          insert into public.user_organizations (user_id, organization_id, role, accepted_at)
+          values (v_uid, v_org, 'admin', now())
+          on conflict (user_id, organization_id) do update set role = 'admin', revoked_at = null;
+          if not exists (select 1 from public.platform_admins where user_id = v_uid and revoked_at is null) then
+            insert into public.platform_admins (user_id, granted_by, scope, mfa_required, reason)
+            values (v_uid, v_uid, 'full', false, 'Bootstrap inicial Nexio (Hostinger)');
+          end if;
+        end
+        $$$$;
+        SQL
+        echo "admin ok: $$OWNER_EMAIL"
+    logging: *logs
+    networks: [interna]
+
+  app:
+    image: ghcr.io/melgarafael/deskcommcrm:1.124.0
+    restart: unless-stopped
+    mem_limit: 768m
+    depends_on:
+      banco:
+        condition: service_completed_successfully
+      srh:
+        condition: service_started
+      waha:
+        condition: service_started
+    environment: *crm-env
+    volumes:
+      - crm_segredos:/segredos:ro
+    command: ["/bin/sh", "-c", "set -a; . /segredos/env; set +a; exec node server.js"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(3000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=nexio_default
+      - traefik.http.routers.nexiocrm.rule=Host(`crm.nexiodigital.com.br`)
+      - traefik.http.routers.nexiocrm.entrypoints=websecure
+      - traefik.http.routers.nexiocrm.tls.certresolver=le
+      - traefik.http.routers.nexiocrm.middlewares=nexiocrm-gzip
+      - traefik.http.middlewares.nexiocrm-gzip.compress=true
+      - traefik.http.services.nexiocrm.loadbalancer.server.port=3000
+      # A rota global do webhook do WAHA só pode ser chamada pela rede interna.
+      - traefik.http.routers.nexiocrm-waha-block.rule=Host(`crm.nexiodigital.com.br`) && PathPrefix(`/api/v1/webhooks/waha`)
+      - traefik.http.routers.nexiocrm-waha-block.entrypoints=websecure
+      - traefik.http.routers.nexiocrm-waha-block.tls.certresolver=le
+      - traefik.http.routers.nexiocrm-waha-block.priority=1000
+      - traefik.http.routers.nexiocrm-waha-block.middlewares=nexiocrm-deny
+      - traefik.http.middlewares.nexiocrm-deny.ipallowlist.sourcerange=127.0.0.1/32
+      - traefik.http.routers.nexiocrm-waha-block.service=nexiocrm
+    logging: *logs
+    networks: [interna, nexio_default]
+
+  worker:
+    image: ghcr.io/melgarafael/deskcomm-worker:1.124.0
+    restart: unless-stopped
+    mem_limit: 512m
+    stop_grace_period: 40s
+    depends_on:
+      banco:
+        condition: service_completed_successfully
+    environment: *crm-env
+    volumes:
+      - crm_segredos:/segredos:ro
+    command: ["/bin/sh", "-c", "set -a; . /segredos/env; set +a; exec node --import tsx workers/agent-worker/main.ts"]
+    logging: *logs
+    networks: [interna]
+
+  scheduler:
+    image: ghcr.io/melgarafael/deskcomm-scheduler:1.124.0
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      TZ: UTC
+    volumes:
+      - crm_segredos:/segredos:ro
+    command: ["/bin/sh", "-c", "set -a; . /segredos/env; set +a; exec /usr/local/bin/entrypoint.sh"]
+    logging: *logs
+    networks: [interna]
+
+  waha:
+    image: devlikeapro/waha:latest-2026.7.2
+    restart: unless-stopped
+    mem_limit: 1280m
+    depends_on:
+      segredos:
+        condition: service_completed_successfully
+    environment:
+      WHATSAPP_HOOK_URL: http://app:3000/api/v1/webhooks/waha
+      WHATSAPP_HOOK_EVENTS: "message.any,message.ack,message.edited,message.revoked,message.reaction,session.status,state.change"
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WAHA_DASHBOARD_ENABLED: "false"
+      WHATSAPP_SWAGGER_ENABLED: "false"
+      WHATSAPP_RESTART_ALL_SESSIONS: "True"
+    volumes:
+      - crm_segredos:/segredos:ro
+      - crm_waha_sessions:/app/.sessions
+      - crm_waha_media:/app/.media
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -a; . /segredos/env; set +a
+        export WAHA_API_KEY="sha512:$$WAHA_API_KEY_SHA512"
+        export WHATSAPP_HOOK_HMAC_KEY="$$WAHA_HMAC_SECRET"
+        exec /entrypoint.sh
+    logging: *logs
+    networks: [interna]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging: *logs
+    networks: [interna]
+
+  srh:
+    image: hiett/serverless-redis-http@sha256:5b0bb9239fce53abf87b2018a7a0deb9ec7bd900c5360738fe5fbeeb426f9150
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      segredos:
+        condition: service_completed_successfully
+    environment:
+      SRH_MODE: env
+      SRH_CONNECTION_STRING: redis://redis:6379
+    volumes:
+      - crm_segredos:/segredos:ro
+    command: ["/bin/sh", "-c", "set -a; . /segredos/env; set +a; exec _build/prod/rel/prod/bin/prod start"]
+    logging: *logs
+    networks: [interna]
+
+volumes:
+  crm_segredos:
+  crm_waha_sessions:
+  crm_waha_media:
+
+networks:
+  interna:
+    driver: bridge
+  nexio_default:
+    external: true
