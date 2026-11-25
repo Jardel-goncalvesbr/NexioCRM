@@ -40,5 +40,13 @@ Depois do primeiro deploy com sucesso, apague `OWNER_PASSWORD` do Ambiente (o ad
 4. Acompanhe a aba **Logs**: `segredos gerados` → `schema ok` → `admin ok`. O primeiro schema leva alguns minutos.
 5. Acesse `https://crm.nexiodigital.com.br` com `OWNER_EMAIL` / `OWNER_PASSWORD` e conecte o WhatsApp em **Conexões**.
 
-## Atualizar a versão
-Troque `1.124.0` nas três imagens **e** `v1.124.0` em `BASELINE_URL` pelo mesmo número novo e reimplante. O serviço `banco` reaplica o schema em modo atualização.
+## Imagem própria do Nexio CRM
+O servidor usa as imagens construídas a partir DESTE repositório, publicadas pelo GitHub Actions (workflow "Publicar imagem Docker (GHCR)") a cada push na `main`:
+`ghcr.io/jardel-goncalvesbr/deskcommcrm:main`, `deskcomm-worker:main` e `deskcomm-scheduler:main` (`pull_policy: always`).
+
+Fluxo de mudança: commit na `main` → aguarde o workflow terminar (aba Actions, ~20 min) → hPanel > Gerenciador Docker > projeto `nexio-crm` > **Reimplantar**.
+
+O schema vem de `supabase/baseline.sql` da própria `main`, então código e banco andam juntos.
+
+## Atualizar para uma versão nova do DeskcommCRM
+Traga a tag do projeto original para a `main` (`git fetch upstream tag vX.Y.Z && git merge vX.Y.Z`), faça push, espere as imagens e reimplante. Depois rode `versao-do-rodape.sql` com o número novo para o rodapé mostrar a versão.

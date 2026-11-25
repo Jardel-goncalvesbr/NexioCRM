@@ -41,7 +41,12 @@ export function VersionFooter({
       title={titulo}
     >
       {collapsed && label ? label.split(".").slice(0, 2).join(".") : titulo}
-      {data.identity && data.identity.status !== "confirmed" && (
+      {/* Nexio: `legacy` = instalação sem o agente de host do kit (caso da VPS
+          Hostinger). Ali não existe confirmação a esperar, então o aviso só
+          aparece quando há agente e ele ainda não confirmou a execução. */}
+      {data.identity &&
+        data.identity.status !== "confirmed" &&
+        data.identity.status !== "legacy" && (
         <span className="block text-[10px]">{t("Execução não confirmada")}</span>
       )}
     </p>
