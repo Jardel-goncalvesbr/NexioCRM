@@ -82,7 +82,7 @@ describe("aparenciaDeSettings — ler o jsonb sem confiar nele", () => {
     const lida = aparenciaDeSettings({
       aparencia: { template: "nao-existe", fonte: "comic-sans", raio: "medio", cor_secundaria: "azul" },
     });
-    expect(lida.template).toBeNull();
+    expect(lida.template).toBe(AJUSTES_PADRAO.template);
     expect(lida.fonte).toBeNull();
     expect(lida.raio).toBe("medio");
     expect(lida.cor_secundaria).toBeNull();
@@ -90,8 +90,12 @@ describe("aparenciaDeSettings — ler o jsonb sem confiar nele", () => {
 });
 
 describe("atributosDaAparencia — o que o marcador de /app carrega", () => {
-  it("sem template e sem ajuste: nenhum atributo (a tela de hoje)", () => {
-    expect(atributosDaAparencia(AJUSTES_PADRAO)).toEqual({});
+  it("sem escolha: só o template de fábrica da instalação (Nexio: Safira)", () => {
+    expect(atributosDaAparencia(AJUSTES_PADRAO)).toEqual({ "data-aparencia": "safira" });
+  });
+
+  it("sem template e sem ajuste: nenhum atributo", () => {
+    expect(atributosDaAparencia({ ...AJUSTES_PADRAO, template: null })).toEqual({});
   });
 
   it("com template e ajustes: um atributo por escolha", () => {

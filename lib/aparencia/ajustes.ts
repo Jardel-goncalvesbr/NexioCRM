@@ -42,8 +42,15 @@ export type Aparencia = {
   readonly cor_secundaria: string | null;
 };
 
+/**
+ * Nexio: o template de fábrica desta instalação. Organização que nunca escolheu
+ * aparência (ou que gravou um template que não existe) abre com ele.
+ * `null` devolveria a aparência neutra original do produto.
+ */
+export const TEMPLATE_PADRAO: string | null = "safira";
+
 export const AJUSTES_PADRAO: Aparencia = {
-  template: null,
+  template: TEMPLATE_PADRAO,
   fonte: null,
   raio: null,
   densidade: "confortavel",
@@ -62,7 +69,7 @@ export function aparenciaDeSettings(settings: unknown): Aparencia {
   const a = bruto as Record<string, unknown>;
   const hex = typeof a.cor_secundaria === "string" ? a.cor_secundaria.trim() : "";
   return {
-    template: templatePorId(a.template)?.id ?? null,
+    template: templatePorId(a.template)?.id ?? TEMPLATE_PADRAO,
     fonte: ehChaveDeFonte(a.fonte) ? a.fonte : null,
     raio: umDe(RAIOS, a.raio),
     densidade: umDe(DENSIDADES, a.densidade) ?? AJUSTES_PADRAO.densidade,

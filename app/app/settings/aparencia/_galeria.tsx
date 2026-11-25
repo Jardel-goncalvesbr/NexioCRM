@@ -36,6 +36,7 @@ import {
   type Densidade,
   type Efeitos,
   type Raio,
+  TEMPLATE_PADRAO,
 } from "@/lib/aparencia/ajustes";
 import { TEMPLATES, templatePorId, type Template } from "@/lib/aparencia/catalogo";
 import { CHAVES_DE_FONTE, FONTES, type ChaveDeFonte } from "@/lib/aparencia/fontes";
@@ -195,14 +196,18 @@ export function GaleriaDeAparencia({
           </p>
         </div>
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          <CartaoDoTemplate
-            template={null}
-            emUso={salva.template === null}
-            emPrevia={emPrevia && rascunho.template === null}
-            ocupado={salvando}
-            onVisualizar={() => visualizar(null)}
-            onAplicar={() => salvar({ ...rascunho, template: null })}
-          />
+          {/* Nexio: com template de fábrica definido, "sem template" volta para ele
+              ao salvar — o cartão neutro seria uma escolha que não pega. */}
+          {TEMPLATE_PADRAO === null && (
+            <CartaoDoTemplate
+              template={null}
+              emUso={salva.template === null}
+              emPrevia={emPrevia && rascunho.template === null}
+              ocupado={salvando}
+              onVisualizar={() => visualizar(null)}
+              onAplicar={() => salvar({ ...rascunho, template: null })}
+            />
+          )}
           {TEMPLATES.map((tpl) => (
             <CartaoDoTemplate
               key={tpl.id}
