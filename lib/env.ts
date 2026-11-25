@@ -504,6 +504,13 @@ const schema = z.object({
    */
   SUPPORT_EMAIL: z.string().optional().default(""),
 
+  /**
+   * WhatsApp que a página inicial pública (`app/page.tsx`) oferece ao
+   * visitante, só dígitos com DDI. Vazio = a página não mostra botão de
+   * WhatsApp; nunca cai num número do produto.
+   */
+  SUPPORT_WHATSAPP: z.string().optional().default(""),
+
   // EPIC-11 Impersonate cookie HMAC secret. Optional at boot (route returns
   // 503 at runtime if missing/short); required in prod for the feature to
   // function. Min 32 chars when present is enforced at use site.

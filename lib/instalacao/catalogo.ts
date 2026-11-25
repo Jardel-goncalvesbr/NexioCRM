@@ -162,6 +162,15 @@ export const CATALOGO_DA_INSTALACAO: readonly ChaveDaInstalacao[] = [
     controle: "edita",
   },
   {
+    chave: "SUPPORT_WHATSAPP",
+    rotulo: "WhatsApp de atendimento da página inicial",
+    explicacao:
+      "O número que aparece nos botões de WhatsApp da página inicial pública, com DDI e DDD (ex.: 5511999999999). Vazio = a página não mostra botão de WhatsApp.",
+    grupo: "email",
+    natureza: "texto",
+    controle: "edita",
+  },
+  {
     chave: "LGPD_DPO_EMAIL",
     rotulo: "E-mail do encarregado de dados (DPO)",
     explicacao:
