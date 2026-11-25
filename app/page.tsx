@@ -2,7 +2,8 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { emailDeSuporte, marcaDaSaida } from "@/lib/branding/saida";
+import { marcaDaSaida } from "@/lib/branding/saida";
+import { emailDeSuporte } from "@/lib/branding/saida";
 import { idiomaDoVisitante } from "@/lib/i18n/idiomaAnonimo";
 import { traduzir } from "@/lib/i18n/dicionario";
 import { valorDaInstalacao } from "@/lib/instalacao/config";
