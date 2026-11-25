@@ -1,4 +1,4 @@
-<!-- traduzido-de: docs/white-label.md@b4c1c13cdced -->
+<!-- traduzido-de: docs/white-label.md@b5cc8c02c550 -->
 
 [🇧🇷 Português](white-label.md) · 🇺🇸 English · [🇪🇸 Español](white-label.es.md)
 
@@ -176,7 +176,15 @@ RESEND_FROM_EMAIL=no-reply@yourcompany.com
 SUPPORT_EMAIL=support@yourcompany.com
 ```
 
-It shows up on the suspended-account and billing screens. **Empty means empty:** the screen simply shows no address at all — it never falls back to ours. On a suspended-account screen that matters: whoever suspended it was you, not us.
+It shows up on the suspended-account and billing screens and on the "Send email" button of the public home page. **Empty means empty:** the screen simply shows no address at all — it never falls back to ours. On a suspended-account screen that matters: whoever suspended it was you, not us.
+
+### The public home page WhatsApp
+
+```bash
+SUPPORT_WHATSAPP=5511999999999
+```
+
+Digits only, with country and area code. It is the number behind the WhatsApp buttons on the home page that visitors see without signing in (`/`). It can also be edited in Administration › Configuration. Empty, the page shows no WhatsApp button.
 
 ---
 
