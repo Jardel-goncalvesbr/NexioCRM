@@ -174,7 +174,15 @@ RESEND_FROM_EMAIL=nao-responda@suaempresa.com.br
 SUPPORT_EMAIL=suporte@suaempresa.com.br
 ```
 
-Aparece nas telas de conta suspensa e de cobrança. **Vazio significa vazio:** a tela simplesmente não mostra endereço nenhum — nunca cai de volta no nosso. Numa tela de conta suspensa isso importa: quem suspendeu foi você, não nós.
+Aparece nas telas de conta suspensa e de cobrança e no botão "Enviar e-mail" da página inicial pública. **Vazio significa vazio:** a tela simplesmente não mostra endereço nenhum — nunca cai de volta no nosso. Numa tela de conta suspensa isso importa: quem suspendeu foi você, não nós.
+
+### O WhatsApp da página inicial pública
+
+```bash
+SUPPORT_WHATSAPP=5511999999999
+```
+
+Só dígitos, com DDI e DDD. É o número dos botões de WhatsApp da página inicial que o visitante vê sem entrar (`/`). Também se edita em Administração › Configuração. Vazio, a página não mostra botão de WhatsApp.
 
 ---
 
