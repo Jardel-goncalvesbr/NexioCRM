@@ -18,10 +18,11 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 vi.mock("@/lib/i18n/idiomaAnonimo", () => ({ idiomaDoVisitante: async () => "pt-BR" }));
+const logoDaCena = vi.hoisted(() => ({ url: null as string | null }));
 vi.mock("@/lib/branding/saida", () => ({
   marcaDaSaida: async () => ({
     nome: "Marca da Revenda",
-    logoUrl: null,
+    logoUrl: logoDaCena.url,
     accent: "#2563eb",
     accentFg: "#ffffff",
   }),
@@ -93,5 +94,14 @@ describe("/ — a página inicial pública", () => {
     const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href") ?? "");
     expect(hrefs.some((h) => h.startsWith("https://wa.me/5511999999999"))).toBe(true);
     expect(hrefs).toContain("mailto:contato@revenda.exemplo");
+  });
+
+  it("com logo, o nome não aparece escrito ao lado (o logo já o traz)", async () => {
+    logoDaCena.url = "https://exemplo.test/logo.png";
+    const { container } = await montar();
+    const marca = container.querySelector("header a[href='/']");
+    expect(marca?.querySelector("img")).not.toBeNull();
+    expect(marca?.querySelector("span.sr-only")?.textContent).toBe("Marca da Revenda");
+    logoDaCena.url = null;
   });
 });

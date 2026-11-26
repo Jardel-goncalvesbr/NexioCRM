@@ -104,15 +104,22 @@ export default async function HomePage() {
 
   const logoDaMarca = (
     <>
+      {/* O logo costuma já trazer o nome escrito: com logo, o nome fica só
+          para leitor de tela, senão aparece duas vezes lado a lado. */}
       {logo ? (
-        // eslint-disable-next-line @next/next/no-img-element -- URL da marca vem do banco, fora do domínio de imagens do next/image
-        <img src={logo} alt="" className="vt-marcaLogo" />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL da marca vem do banco, fora do domínio de imagens do next/image */}
+          <img src={logo} alt="" className="vt-marcaLogo" />
+          <span className="sr-only">{marca.nome}</span>
+        </>
       ) : (
-        <span className="vt-marcaInicial" aria-hidden="true">
-          {inicial}
-        </span>
+        <>
+          <span className="vt-marcaInicial" aria-hidden="true">
+            {inicial}
+          </span>
+          <span>{marca.nome}</span>
+        </>
       )}
-      <span>{marca.nome}</span>
     </>
   );
 
