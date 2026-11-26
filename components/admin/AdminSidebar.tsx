@@ -48,11 +48,16 @@ export function AdminSidebar({ userEmail, variant = "desktop", modulosLigados = 
 
   return (
     <aside
+      // Mesmos ganchos da casca do `/app` (`app/app/aparencia.css`): com o
+      // template de fábrica, o menu do admin fica igual ao do app.
+      data-casca="menu"
+      {...(isMobile ? { "data-casca-movel": "" } : { "data-casca-lugar": "lateral" })}
       className={cn(
         "flex flex-col border-r bg-card",
         isMobile ? "h-full w-full" : "hidden w-60 shrink-0 lg:flex",
       )}
     >
+      <div data-casca="menu-painel" className="flex h-full min-h-0 flex-col">
       <div className="flex h-14 items-center gap-3 border-b px-4">
         {/* O nome já está escrito ao lado — o símbolo é reforço, não legenda. */}
         {marcaEhADoProduto(marca) && (
@@ -76,7 +81,7 @@ export function AdminSidebar({ userEmail, variant = "desktop", modulosLigados = 
               href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                 isActive
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
@@ -99,6 +104,7 @@ export function AdminSidebar({ userEmail, variant = "desktop", modulosLigados = 
         <p className="truncate px-2 text-xs text-muted-foreground" title={userEmail}>
           {userEmail}
         </p>
+      </div>
       </div>
     </aside>
   );
