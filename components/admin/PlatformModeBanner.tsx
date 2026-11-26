@@ -17,7 +17,7 @@ import { useT } from "@/hooks/i18n/useT";
  * diz em que superfície a pessoa está — e a catraca
  * `admin-tem-troca-de-tema.test.tsx` vigia que ela siga aqui.
  *
- * ── Por que as cores são token e não `amber-*` ───────────────────────────────
+ * ── (Histórico) Por que as cores eram token de aviso e não `amber-*` ───────────────────────────────
  *
  * A versão anterior usava `bg-amber-100 border-amber-300 text-amber-900`, cru
  * do Tailwind e portanto FIXO: a tarja não acompanhava claro e escuro, e num
@@ -34,7 +34,10 @@ export function PlatformModeBanner() {
   const t = useT();
   return (
     <div role="region" aria-label={t("Modo Plataforma")} className="sticky top-0 z-40 w-full bg-bg">
-      <div className="flex h-10 w-full items-center justify-between border-b border-warning/35 bg-warning-bg px-4 text-warning-fg">
+      {/* Nexio: a tarja segue a cor do MENU do template de fábrica (Safira:
+          azul-marinho com texto claro), lida das custom properties que
+          `lib/aparencia/css.ts` declara. Sem template, cai nos tokens neutros. */}
+      <div className="flex h-10 w-full items-center justify-between border-b border-white/10 bg-[color:var(--aparencia-menu-fundo-solido,var(--color-surface-elevated))] px-4 text-[color:var(--aparencia-menu-texto,var(--color-text))]">
         <div className="flex items-center gap-2 text-sm">
           <Buildings size={18} weight="fill" aria-hidden />
           <span className="font-semibold tracking-tight">{t("MODO PLATAFORMA")}</span>
@@ -44,7 +47,7 @@ export function PlatformModeBanner() {
           {/* 40px de tarja não comportam os 44px de alvo de toque do `size="icon"`.
               O mesmo já valia para o link ao lado, que é `text-xs`: quem opera o
               modo plataforma está num desktop, com cursor. */}
-          <ThemeToggle className="h-7 w-7 text-warning-fg lg:h-7 lg:w-7" />
+          <ThemeToggle className="h-7 w-7 text-inherit hover:bg-white/10 hover:text-inherit lg:h-7 lg:w-7" />
           <Link
             href="/app"
             className="rounded-md px-2 py-1 text-xs font-medium underline-offset-2 hover:underline"
