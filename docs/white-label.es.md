@@ -1,4 +1,4 @@
-<!-- traduzido-de: docs/white-label.md@b4c1c13cdced -->
+<!-- traduzido-de: docs/white-label.md@b5cc8c02c550 -->
 
 [🇧🇷 Português](white-label.md) · [🇺🇸 English](white-label.en.md) · 🇪🇸 Español
 
@@ -176,7 +176,15 @@ RESEND_FROM_EMAIL=no-responder@tuempresa.com
 SUPPORT_EMAIL=soporte@tuempresa.com
 ```
 
-Aparece en las pantallas de cuenta suspendida y de cobro. **Vacío significa vacío:** la pantalla simplemente no muestra ninguna dirección — nunca cae de vuelta en la nuestra. En una pantalla de cuenta suspendida eso importa: quien suspendió fuiste tú, no nosotros.
+Aparece en las pantallas de cuenta suspendida y de cobro y en el botón "Enviar e-mail" de la página de inicio pública. **Vacío significa vacío:** la pantalla simplemente no muestra ninguna dirección — nunca cae de vuelta en la nuestra. En una pantalla de cuenta suspendida eso importa: quien suspendió fuiste tú, no nosotros.
+
+### El WhatsApp de la página de inicio pública
+
+```bash
+SUPPORT_WHATSAPP=5511999999999
+```
+
+Solo dígitos, con código de país y de área. Es el número de los botones de WhatsApp de la página de inicio que el visitante ve sin iniciar sesión (`/`). También se edita en Administración › Configuración. Vacío, la página no muestra botón de WhatsApp.
 
 ---
 
