@@ -91,7 +91,7 @@ export function AdminShell({
             persistente deste painel — ver a medição de largura em
             `PlatformModeBanner.tsx` e a decisão de lugar em `AvisoSemSmtp.tsx`. */}
         {semSmtp ? <AvisoSemSmtp /> : null}
-        <div className="flex flex-1">
+        <div data-casca="raiz" className="flex flex-1">
           <AdminSidebar userEmail={userEmail} modulosLigados={modulosLigados} />
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetContent side="left" className="w-72 max-w-[85vw] gap-0 p-0 lg:hidden">
@@ -99,13 +99,13 @@ export function AdminShell({
               <AdminSidebar userEmail={userEmail} variant="mobile" modulosLigados={modulosLigados} />
             </SheetContent>
           </Sheet>
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div data-casca="conteudo" className="flex min-w-0 flex-1 flex-col">
             {/* Barra do topo do painel. Nasceu só para carregar o hambúrguer
                 abaixo de `lg`, onde a sidebar fixa não está mais no DOM; agora
                 carrega também a BUSCA (⌘K), que é o que o painel não tinha e o
                 app do tenant já tinha. Ela existe nos dois tamanhos: no desktop
                 a busca fica à direita e o hambúrguer some. */}
-            <header className="flex h-14 items-center gap-2 border-b bg-background px-3">
+            <header data-casca="topo" className="flex h-14 items-center gap-2 border-b bg-background px-3">
               <Button
                 type="button"
                 variant="ghost"

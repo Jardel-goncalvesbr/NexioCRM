@@ -5,6 +5,10 @@ import { IdiomaProvider } from "@/lib/i18n/IdiomaProvider";
 import { modulosLigados } from "@/lib/instalacao/modulos";
 import { instalacaoSemSmtp } from "@/lib/email/estado";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { AJUSTES_PADRAO, atributosDaAparencia } from "@/lib/aparencia/ajustes";
+import { cssDaAparenciaDaOrganizacao } from "@/lib/aparencia/css";
+import { EstiloDaAparencia } from "@/app/app/_components/EstiloDaAparencia";
+import "@/app/app/aparencia.css";
 
 export default async function ProtectedAdminLayout({ children }: { children: ReactNode }) {
   const { user } = await requirePlatformAdmin();
@@ -26,11 +30,20 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     modulosLigados(createAdminClient()),
     instalacaoSemSmtp(),
   ]);
+  // Nexio: o painel da plataforma usa a MESMA aparência de fábrica do `/app`
+  // (`TEMPLATE_PADRAO`, hoje Safira), pelo mesmo marcador e o mesmo CSS. É a
+  // aparência da INSTALAÇÃO, não a de uma organização: o admin é cross-tenant,
+  // e pintá-lo com o tema de um tenant seria confundir as superfícies.
+  // `cssDaAparenciaDaOrganizacao` nunca lança (degrada para `null`).
+  const cssDaAparencia = cssDaAparenciaDaOrganizacao(AJUSTES_PADRAO, false);
   return (
     <IdiomaProvider locale={locale}>
-      <AdminShell userEmail={user.email ?? ""} modulosLigados={modulos} semSmtp={semSmtp}>
-        {children}
-      </AdminShell>
+      <div data-marca-org="" {...atributosDaAparencia(AJUSTES_PADRAO)} className="contents">
+        <EstiloDaAparencia css={cssDaAparencia} />
+        <AdminShell userEmail={user.email ?? ""} modulosLigados={modulos} semSmtp={semSmtp}>
+          {children}
+        </AdminShell>
+      </div>
     </IdiomaProvider>
   );
 }
